@@ -1,18 +1,16 @@
 ---
 title: "GHSC-PSM TO3 Global Supply Chain reason code analysis"
-subtitle: "FY2023 and FY2024Q1"
-author: "Arati Krishnamoorthy"
-format: pptx
+subtitle: "February 2024"
+author: "Arati Krishnamoorthy, GH/PRH/CSL"
+format: html
 editor: visual
 execute: 
-  output: false
+  include: false # dont include code or results, override in sections as needed.
 ---
 
 ```{r Purpose, Version and Learning}
-# Purpose: Analysis of the use of reason codes by GHSC-PSM TO3 in FY2023 and FY2024Q1
-# Author: Arati Krishnamoorthy
-# Version Control:
-# Feb 2024  Build off the oc.qmd script
+# Purpose: Analysis of the use of reason codes by GHSC-PSM TO3, particularly in FY2023 and FY2024Q1
+# Version: Feb 2024  Build off the oc.qmd script
 # old learning:
 #   use slice to remove rows
 #   use janitor row_to_names to get column names from a row
