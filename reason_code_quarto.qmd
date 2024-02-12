@@ -146,7 +146,9 @@ pds <- pds |>
 
 pds |> 
   select(lt_ct) |> 
-  glimpse()
+  glimpse() |> 
+# lt_ct is of type duration as it is the difference of two dates, convert it to numeric for easy plotting
+  mutate(x = as.numeric(lt_ct,"days"))
 ```
 
 ```{r importdata_reasoncode}
@@ -241,7 +243,7 @@ line <- 10
     
 mytheme <- function() {
       theme_classic() +
-        theme(plot.title = element_text(size = 20,
+        theme(plot.title = element_text(size = 10,
                                         color = color_title,
                                         face = "bold",
                                         margin = margin(b = line),
@@ -249,12 +251,12 @@ mytheme <- function() {
               
               plot.title.position = "plot", #Move plot.title to the left
               
-              plot.subtitle = element_text(size = 14,
+              plot.subtitle = element_text(size = 7,
                                            face = "italic",
                                            color = color_plot_text,
                                            hjust = 0), 
               
-              plot.caption = element_text(size = 16,
+              plot.caption = element_text(size = 8,
                                           color = color_caption,
                                           face = "italic",
                                           margin = margin(t = line),
@@ -265,13 +267,13 @@ mytheme <- function() {
               
               plot.margin = ggplot2::margin(15, 15, 10, 15), #top, right, bottom, left
               
-              axis.title = element_text(size = 16, # adjusts both axes titles
+              axis.title = element_text(size = 8, # adjusts both axes titles
                                         color = color_plot_text),          
-              axis.text.x = element_text(size = 12,
+              axis.text.x = element_text(size = 8,
                                          angle = 60, 
                                          hjust = 1,
                                          color = color_plot_text),
-              axis.text.y = element_text(size = 14,
+              axis.text.y = element_text(size = 8,
                                          color = color_plot_text),
               
               axis.ticks = element_blank(),
@@ -280,7 +282,7 @@ mytheme <- function() {
               
               legend.position = "right",
               legend.title = element_blank(),
-              legend.text = element_text(size = 14,
+              legend.text = element_text(size = 7,
                                          color = color_plot_text)
               
               # text =  element_text(color = color_plot_text,
@@ -297,6 +299,8 @@ mytheme <- function() {
 ```
 
 Percentage of orders where a reason code is applied
+
+In instances where reason codes are applied multiple times on a order line, only the most recent code is shown. This may result in some underreporting of AD012 (and other) codes. These charts can be further refined (if needed) to show where 1 code is present and where multiple codes are present, and which ones include AD012.
 
 ```{r dataviz_perfds1}
 #| output: true
@@ -315,24 +319,89 @@ pds |>
                     sep = " "),
     x = "Revised agreed delivery date",
     y = "% of order line items "
-  ) 
+  ) +
   mytheme()
   
 
 ```
 
 For <Condom Adjusted Task Order> = TO3 : In <Revised Agreed Delivery Date Fiscal Quarter Year> = FY2024Q1 How early are orders that have AD012 applied ?
-#TODO check if bins include end points
-#TODO calculate how many orders are more than four weeks early
+
+#TODO calculate how many orders are more than four weeks early; show bin tick marks and labels,
+
+center bin needs to be -14 to 7, so binwidth is 22 and -3.5 is the center of one of the bins
 
 ```{r dataviz_perfds2}
 #| output: true
 
 pds |> 
   filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |> 
-  ggplot(aes(lt_ct ,
+  ggplot(aes(as.numeric(lt_ct,"days") , # lt_ct is duration in days
              fill = otd_reasoncode)) +
-  geom_histogram(binwidth = 7) +
+  
+  geom_histogram(binwidth = 22,
+                 center = -3.5) + # center of one of the bins
+  
+  # Add vertical lines for the OTD window
+  geom_vline(aes(xintercept = 7),
+             linetype = "dashed", linewidth = 0.5) +
+  geom_vline(aes(xintercept = -14),
+             linetype = "dashed", linewidth = 0.5) +
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+ #   title = "Trend in the use of reason codes",
+ #   subtitle = (""),
+    caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "Difference between Actual delivery date and Agreed delivery date",
+    y = "Number of order line items "
+  ) 
+  mytheme()
+  
+count_A012_earlier_than_otd_2024q1 <- 
+  pds |> 
+    filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |> 
+    filter(lt_ct < -14,
+           otd_reasoncode == "On time with AD012") |> 
+    count(otd_reasoncode) |> 
+    pull(n)
+
+count__2024q1 <-  pds |>
+    filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |>
+    count() |> 
+    pull(n)
+
+count__2024q1
+
+percent_A012_earlier_than_otd_2024q1 <- 
+  count_A012_earlier_than_otd_2024q1 / count__2024q1
+
+percent_A012_earlier_than_otd_2024q1
+```
+
+chart above for 2023
+
+```{r dataviz_perfds3}
+#| output: true
+
+pds |> 
+  select(lt_ct) |> 
+  mutate(x = as.numeric(lt_ct,"days"))
+
+pds |> 
+  filter(revised_agreed_delivery_date_fiscal_year == "2023") |> 
+  ggplot(aes(as.numeric(lt_ct,"days") , # lt_ct is duration in days
+             fill = otd_reasoncode)) +
+  
+  geom_histogram(binwidth = 22,
+                 center = -3.5) + # center of one of the bins
+  
+  # Add vertical lines for the OTD window
+  geom_vline(aes(xintercept = 7),
+             linetype = "dashed", linewidth = 0.5) +
+  geom_vline(aes(xintercept = -14),
+             linetype = "dashed", linewidth = 0.5) +
   scale_fill_brewer(palette = "YlGnBu") +
   labs(
  #   title = "Trend in the use of reason codes",
