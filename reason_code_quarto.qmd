@@ -41,7 +41,8 @@ pacman::p_load("tidyverse",
                "janitor",  # for data cleaning
                "here",     # for relative file paths
                "ggplot2",
-               "RColorBrewer"
+               "RColorBrewer",
+               "gt"
             )
 
 
@@ -146,9 +147,11 @@ pds <- pds |>
 
 pds |> 
   select(lt_ct) |> 
-  glimpse() |> 
+  glimpse() 
 # lt_ct is of type duration as it is the difference of two dates, convert it to numeric for easy plotting
-  mutate(x = as.numeric(lt_ct,"days"))
+  
+pds <- pds |> 
+  mutate(lt_ct = as.numeric(lt_ct,"days"))
 ```
 
 ```{r importdata_reasoncode}
@@ -184,8 +187,8 @@ reasoncode <- reasoncode |>
   mutate(
     prime_line_number = as.character(prime_line_number),
     ropo_line = str_c(ro_number, 
-                           po_do_io_number, 
-                           prime_line_number)
+                      po_do_io_number, 
+                      prime_line_number)
          )
 # select columns and rows of interest - 
 # adding only the TO3 reason codes
@@ -355,11 +358,10 @@ percent_early(quarter_vector)
 
  
 ```
-For Taskorder TO3 in`{r} quarter_vector` (fiscal year of revised agreed delivery date) How early are orders that have AD012 applied ? 
+
+For Taskorder TO3 in`{r} quarter_vector` (fiscal year of revised agreed delivery date) How early are orders that have AD012 applied ?
 
 `{r} percent_early(quarter_vector)`% of orders are delivered more than 5 weeks early.
-
-#TO DO show bin tick marks and labels,
 
 center bin needs to be -14 to 7, so binwidth is 22 and -3.5 is the center of one of the bins
 
@@ -394,11 +396,14 @@ pds |>
 ```
 
 ```{r dataviz_reasoncode_distribution}
+#| output: true
 
 pds_allcodes |> 
-  filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector,
-         str_starts(reason_code.y,"AD")) |> 
-  ggplot(aes(reason_code.y)) +
+  filter(
+    current_indicator_PO == "A",
+    revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector,
+    str_starts(reason_code.y,"AD")) |> 
+  ggplot(aes(x = fct_infreq(reason_code.y))) +
   geom_bar()+
   
   scale_fill_brewer(palette = "YlGnBu") +
@@ -408,9 +413,91 @@ pds_allcodes |>
     caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
                     importdate_pds,
                     sep = " "),
-#    x = "",
-    y = "Number of order line items "
+    x = "",
+    y = "Number of order line items that had the code applied"
   ) +
   mytheme()
+
+pds_allcodes |> 
+  filter(
+    current_indicator_PO == "A",
+    revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector,
+    str_starts(reason_code.y,"AD")) |> 
+  select(reason_code.y, 
+         country,
+         brand_name,
+         po_do_io_number.x,
+         reason_code_comment)
+```
+```{r reason_code_check}
+#| output: true
+
+pds |> 
+  filter(!str_starts(reason_code,"AD"),
+         revised_agreed_delivery_date != agreed_delivery_date) |> 
+  select(
+    ropo_line,
+    agreed_delivery_date,
+    revised_agreed_delivery_date,
+    latest_actual_delivery_date,
+    reason_code,
+    reason_text
+  ) 
+    
+```
+
+
+```{r rdd_distribution}
+#| output: true
+
+# rdd-oed
+pds |> 
+  filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector) |> 
+  ggplot(aes(as.numeric(requested_delivery_date - order_entry_date)/30 )) +
+#  geom_histogram(binwidth = 1,
+#                 color = "#000000") +
+  geom_bar()+
+  scale_x_binned(breaks = seq(0,20,by = 2),
+                 limits = c(0, 20))+
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+    title = "distribution of RDD - OED in months",
+    subtitle = (quarter_vector),
+    caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "",
+    y = ""
+  ) +
+  mytheme() 
+
+
+# add-rdd vs rdd-oed
+
+pds |> 
+  filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector) |> 
+  ggplot(aes(x = as.numeric(requested_delivery_date - order_entry_date)/30,
+             y = as.numeric(agreed_delivery_date - requested_delivery_date)/30,
+             color = country )) +
+
+  geom_point()+
+  scale_x_continuous(breaks = seq(0,20, by = 2),
+                    limits = c(0, 20)) +
+  scale_y_continuous(breaks = seq(0,20, by = 2),
+                    limits = c(0, 20)) +
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+    title = "",
+    subtitle = (quarter_vector),
+    caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "RDD - OED in months",
+    y = "ADD - RDD in months"
+  ) +
+  mytheme() 
+
+
+```
 ```
 
