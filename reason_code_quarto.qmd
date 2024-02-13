@@ -256,7 +256,7 @@ mytheme <- function() {
                                            color = color_plot_text,
                                            hjust = 0), 
               
-              plot.caption = element_text(size = 8,
+              plot.caption = element_text(size = 6,
                                           color = color_caption,
                                           face = "italic",
                                           margin = margin(t = line),
@@ -269,11 +269,11 @@ mytheme <- function() {
               
               axis.title = element_text(size = 8, # adjusts both axes titles
                                         color = color_plot_text),          
-              axis.text.x = element_text(size = 8,
+              axis.text.x = element_text(size = 6,
                                          angle = 60, 
                                          hjust = 1,
                                          color = color_plot_text),
-              axis.text.y = element_text(size = 8,
+              axis.text.y = element_text(size = 6,
                                          color = color_plot_text),
               
               axis.ticks = element_blank(),
@@ -325,9 +325,41 @@ pds |>
 
 ```
 
-For <Condom Adjusted Task Order> = TO3 : In <Revised Agreed Delivery Date Fiscal Quarter Year> = FY2024Q1 How early are orders that have AD012 applied ?
+```{r calculate_earlier_than_5weeks}
+# note calculating 5weeks as it is OTD window + 1 bin to the left
+# whcih is actually -36 days as it is -14 - 22 (binwidth) so one day more than 5weeks
 
-#TODO calculate how many orders are more than four weeks early; show bin tick marks and labels,
+quarter_vector <- c("2024-Q1")
+#quarter_vector <- c("2023-Q1","2023-Q2","2023-Q3","2023-Q4")
+
+
+percent_early <- function(quarter_vector){
+  count_A012_earlier_than_otd <- 
+    pds |> 
+      filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector)|>       filter(lt_ct < -36,
+             otd_reasoncode == "On time with AD012") |> 
+      count(otd_reasoncode) |> 
+      pull(n)
+  
+  count__all <-  pds |>
+      filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector)|>
+      count() |> 
+      pull(n)
+  
+  percent_A012_earlier_than_otd <- count_A012_earlier_than_otd / count__all
+  
+  round(percent_A012_earlier_than_otd*100,0)
+}
+
+percent_early(quarter_vector)
+
+ 
+```
+For Taskorder TO3 in`{r} quarter_vector` (fiscal year of revised agreed delivery date) How early are orders that have AD012 applied ? 
+
+`{r} percent_early(quarter_vector)`% of orders are delivered more than 5 weeks early.
+
+#TO DO show bin tick marks and labels,
 
 center bin needs to be -14 to 7, so binwidth is 22 and -3.5 is the center of one of the bins
 
@@ -335,9 +367,8 @@ center bin needs to be -14 to 7, so binwidth is 22 and -3.5 is the center of one
 #| output: true
 
 pds |> 
-  filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |> 
-  ggplot(aes(as.numeric(lt_ct,"days") , # lt_ct is duration in days
-             fill = otd_reasoncode)) +
+  filter(revised_agreed_delivery_date_fiscal_quarter_year == quarter_vector) |> 
+  ggplot(aes(lt_ct, fill = otd_reasoncode)) +
   
   geom_histogram(binwidth = 22,
                  center = -3.5) + # center of one of the bins
@@ -349,70 +380,37 @@ pds |>
              linetype = "dashed", linewidth = 0.5) +
   scale_fill_brewer(palette = "YlGnBu") +
   labs(
- #   title = "Trend in the use of reason codes",
+ #   title = "How early are orders",
  #   subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
                     importdate_pds,
                     sep = " "),
     x = "Difference between Actual delivery date and Agreed delivery date",
     y = "Number of order line items "
-  ) 
+  ) +
   mytheme()
+
   
-count_A012_earlier_than_otd_2024q1 <- 
-  pds |> 
-    filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |> 
-    filter(lt_ct < -14,
-           otd_reasoncode == "On time with AD012") |> 
-    count(otd_reasoncode) |> 
-    pull(n)
-
-count__2024q1 <-  pds |>
-    filter(revised_agreed_delivery_date_fiscal_quarter_year == "2024-Q1") |>
-    count() |> 
-    pull(n)
-
-count__2024q1
-
-percent_A012_earlier_than_otd_2024q1 <- 
-  count_A012_earlier_than_otd_2024q1 / count__2024q1
-
-percent_A012_earlier_than_otd_2024q1
 ```
 
-chart above for 2023
+```{r dataviz_reasoncode_distribution}
 
-```{r dataviz_perfds3}
-#| output: true
-
-pds |> 
-  select(lt_ct) |> 
-  mutate(x = as.numeric(lt_ct,"days"))
-
-pds |> 
-  filter(revised_agreed_delivery_date_fiscal_year == "2023") |> 
-  ggplot(aes(as.numeric(lt_ct,"days") , # lt_ct is duration in days
-             fill = otd_reasoncode)) +
+pds_allcodes |> 
+  filter(revised_agreed_delivery_date_fiscal_quarter_year %in% quarter_vector,
+         str_starts(reason_code.y,"AD")) |> 
+  ggplot(aes(reason_code.y)) +
+  geom_bar()+
   
-  geom_histogram(binwidth = 22,
-                 center = -3.5) + # center of one of the bins
-  
-  # Add vertical lines for the OTD window
-  geom_vline(aes(xintercept = 7),
-             linetype = "dashed", linewidth = 0.5) +
-  geom_vline(aes(xintercept = -14),
-             linetype = "dashed", linewidth = 0.5) +
   scale_fill_brewer(palette = "YlGnBu") +
   labs(
- #   title = "Trend in the use of reason codes",
- #   subtitle = (""),
+    title = "AD012 is the most applied reason code followed by X",
+    subtitle = (quarter_vector),
     caption = str_c("Data source: GHSC-PSM Artmis\n\nData last updated:",
                     importdate_pds,
                     sep = " "),
-    x = "Difference between Actual delivery date and Agreed delivery date",
+#    x = "",
     y = "Number of order line items "
-  ) 
+  ) +
   mytheme()
-  
-
 ```
+
