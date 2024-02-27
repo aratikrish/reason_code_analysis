@@ -354,9 +354,9 @@ percent_tooearly
 
 # Trend in the use of codes 
 
-```{r dataviz_perfds1}
+```{r dataviz_perfds1_allcountries}
 #| output: true
-
+#| title: All countries
 
 # can use stat=count in geom_bar (with pds and no y in aes) to get a percent stacked chart, however in order to get the percentages to use in text, we need to calculate them first and then use stat= identity iwth a y in aes.
 
@@ -392,12 +392,15 @@ pds_grouped |>
   theme(axis.text.x = element_text(hjust = 1,
                                    angle = 60))+
   scale_y_continuous(labels = scales::percent) +
-  geom_text(aes(label = ifelse(revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
-                               str_c(percent*100,"%"),
-                               "")),
-            position = position_fill(vjust=0.5),
-            colour="white", 
-            size = 3)
+  geom_text(aes(
+    label = ifelse(
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+      str_c(percent*100,"%"),
+      "")
+    ),
+    position = position_fill(vjust=0.5),
+    colour="white", 
+    size = 2)
 
 girafe(
   ggobj = gg_pds_grouped,
@@ -410,25 +413,150 @@ girafe(
   )
 
 ```
+
+```{r dataviz_perfds1_allcountriesexceptdrc}
+#| output: true
+#| eval: false
+#| title: All countries except DRC
+
+# can use stat=count in geom_bar (with pds and no y in aes) to get a percent stacked chart, however in order to get the percentages to use in text, we need to calculate them first and then use stat= identity iwth a y in aes.
+
+pds_grouped <- pds |> 
+  filter(country_group != "Congo DRC") |> 
+  group_by(revised_agreed_delivery_date_fiscal_quarter_year, otd_reasoncode) |> 
+  dplyr::tally() |> 
+  dplyr::mutate(percent= round(n/sum(n),2)) 
+# doing a count instead of group_by/tally will not change n but will change sum(n)-- with a count sum(n) is sum of n across all groups, with group_by/tally sum(n) is sum of n in the immediate higher group
+
+gg_pds_grouped <- 
+pds_grouped |> 
+   ggplot(aes(x = revised_agreed_delivery_date_fiscal_quarter_year,
+             y = n,
+             fill = otd_reasoncode)) +
+  geom_bar_interactive(aes(tooltip = (percent*100)), # tooltip for ggiraph
+                       stat = "identity",
+                       position = "fill") +
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+    title = str_c("In ", 
+                  params$time_period,
+                  ", ", 
+                  percent_reasoncode,
+                  "% of orders had a reason code applied"),
+    subtitle = (""),
+    caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "Revised agreed delivery date",
+    y = "% of order line items "
+  ) +
+  mytheme() +
+  theme(axis.text.x = element_text(hjust = 1,
+                                   angle = 60))+
+  scale_y_continuous(labels = scales::percent) +
+  geom_text(aes(
+    label = ifelse(
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+      str_c(percent*100,"%"),
+      "")
+    ),
+    position = position_fill(vjust=0.5),
+    colour="white", 
+    size = 2)
+
+girafe(
+  ggobj = gg_pds_grouped,
+  options = list(opts_sizing(rescale = FALSE),
+                 opts_tooltip(zindex = 9999),
+                 opts_hover(css = ''),
+                 opts_hover_inv(css = 'opacity:0.2;'))
+#  width_svg = 24,
+#  height_svg = 20
+  )
+
+```
+
+```{r dataviz_perfds1_drc}
+#| eval: false
+#| #| output: true
+#| title: DRC
+
+# can use stat=count in geom_bar (with pds and no y in aes) to get a percent stacked chart, however in order to get the percentages to use in text, we need to calculate them first and then use stat= identity iwth a y in aes.
+
+pds_grouped <- pds |> 
+  filter(country_group == "Congo DRC") |> 
+  group_by(revised_agreed_delivery_date_fiscal_quarter_year, otd_reasoncode) |> 
+  dplyr::tally() |> 
+  dplyr::mutate(percent= round(n/sum(n),2)) 
+# doing a count instead of group_by/tally will not change n but will change sum(n)-- with a count sum(n) is sum of n across all groups, with group_by/tally sum(n) is sum of n in the immediate higher group
+
+gg_pds_grouped <- 
+pds_grouped |> 
+   ggplot(aes(x = revised_agreed_delivery_date_fiscal_quarter_year,
+             y = n,
+             fill = otd_reasoncode)) +
+  geom_bar_interactive(aes(tooltip = (percent*100)), # tooltip for ggiraph
+                       stat = "identity",
+                       position = "fill") +
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+    title = str_c("In ", 
+                  params$time_period,
+                  ", ", 
+                  percent_reasoncode,
+                  "% of orders had a reason code applied"),
+    subtitle = (""),
+    caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "Revised agreed delivery date",
+    y = "% of order line items "
+  ) +
+  mytheme() +
+  theme(axis.text.x = element_text(hjust = 1,
+                                   angle = 60))+
+  scale_y_continuous(labels = scales::percent) +
+  geom_text(aes(
+    label = ifelse(
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+      str_c(percent*100,"%"),
+      "")
+    ),
+    position = position_fill(vjust=0.5),
+    colour="white", 
+    size = 2)
+
+girafe(
+  ggobj = gg_pds_grouped,
+  options = list(opts_sizing(rescale = FALSE),
+                 opts_tooltip(zindex = 9999),
+                 opts_hover(css = ''),
+                 opts_hover_inv(css = 'opacity:0.2;'))
+#  width_svg = 24,
+#  height_svg = 20
+  )
+
+```
+
 # Reason code distribution
 
 ##  {.sidebar}
 
+|           |                         |
+|-----------|-------------------------|
+| **AD012** | Early delivery          |
+| **AD010** | USAID authorized change |
+| **AD011** | USAID requested delay   |
+| **AD030** | Recall/quality related  |
+| **AD070** | Security incident       |
+| **AD998** | Data cleaning           |
+| **AD999** | Other acceptable delay  |
 
-|             |                        |
-|-------------|------------------------|
-| **AD012**   | Early delivery         |
-| **AD010**   | USAID authorized change|
-| **AD011**   | USAID requested delay  |
-| **AD030**   | Recall/quality related |
-| **AD070**   | Security incident      |
-| **AD998**   | Data cleaning          |
-| **AD999**   | Other acceptable delay |
-
-## column   
+## column {.tabset}
 
 ```{r dataviz_reasoncode_distribution}
 #| output: true
+#| title: All Countries
 
 pds_allcodes |> 
   filter(
@@ -453,46 +581,66 @@ pds_allcodes |>
   mytheme()
 ```
 
-# How early are early orders
-
-```{r dataviz_perfds2_indays}
-#| eval: false
+```{r dataviz_reasoncode_distribution_nonDRC}
 #| output: true
+#| title: All countries except DRC
 
-pds |> 
-  filter(revised_agreed_delivery_date_fiscal_quarter_year == params$time_period) |> 
-  ggplot(aes(lt_ct, fill = otd_reasoncode)) + 
-
-  # center bin needs to be -14 to 7, so binwidth is 22 and -3.5 is the center of one of the bins
-   geom_histogram(binwidth = 22,
-                 center = -3.5) + 
-  # -234 and 227 are 10 bins on either side of the OTD window
-  scale_x_continuous(breaks = seq(-234 , 227 ,by = 22))+ 
-  # Add vertical lines for the OTD window
-  geom_vline(aes(xintercept = 7),
-             linetype = "dashed", linewidth = 0.5) +
-  geom_vline(aes(xintercept = -14),
-             linetype = "dashed", linewidth = 0.5) +
+pds_allcodes |> 
+  filter(
+    country_group == "All other countries",
+    current_indicator_PO == "A",
+    revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+    str_starts(reason_code.y,"AD")) |> 
+  ggplot(aes(x = fct_infreq(reason_code.y))) +
+  geom_bar()+
+  
   scale_fill_brewer(palette = "YlGnBu") +
   labs(
-     title = str_c("In ", 
-                   params$time_period, 
-                   ", ",
-                   percent_tooearly,
-                   "% of orders were delivered more than 5 weeks ahead of agreed delivery date"),
- #   subtitle = (""),
+    title = str_c("In ", 
+                  params$time_period,
+                  ", ", 
+                  "the most applied reason code is AD012, followed by AD030"),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
                     importdate_pds,
                     sep = " "),
-    x = "Difference between Actual delivery date and Agreed delivery date in days",
-    y = "Number of order line items "
+    x = "",
+    y = "Number of order line items with code"
   ) +
-  mytheme() +
-  theme(axis.text.x = element_text(hjust = 1,
-                                   angle = 60))
+  mytheme()
 ```
 
-```{r dataviz_perfds2_inweeks}
+```{r dataviz_reasoncode_distribution_DRC}
+#| output: true
+#| title: DRC
+
+pds_allcodes |> 
+  filter(
+    country_group == "Congo DRC",
+    current_indicator_PO == "A",
+    revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+    str_starts(reason_code.y,"AD")) |> 
+  ggplot(aes(x = fct_infreq(reason_code.y))) +
+  geom_bar()+
+  
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+    title = str_c("In ", 
+                  params$time_period,
+                  ", ", 
+                  "the most applied reason code is AD012, followed by AD030"),
+    caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "",
+    y = "Number of order line items with code"
+  ) +
+  mytheme()
+```
+
+# How early are early orders {.tabset}
+
+```{r dataviz_perfds2_inweeks_allcountries}
+#| title: All countries
 #| output: true
 
 #TODO add geom text to show less than 5 weeks
@@ -528,13 +676,53 @@ pds |>
 #                                   angle = 60))
 ```
 
+```{r dataviz_perfds2_inweeks_allcountriesexceptdrc}
+#| title: All countries except DRC
+#| output: true
+
+#TODO add geom text to show less than 5 weeks
+pds |> 
+  filter(country_group == "All other countries",
+         revised_agreed_delivery_date_fiscal_quarter_year == params$time_period) |> 
+  ggplot(aes(lt_ct/7, fill = otd_reasoncode)) + 
+  
+  geom_histogram(binwidth = 3, # OTD window is 3 weeks
+                 center = -0.5) + # center of one of the bins
+  scale_x_continuous(breaks = seq(-32 , 31 ,by = 3))+ # -32 and 31 are 10 bins on either side of the OTD window
+  # Add vertical lines for the OTD window
+  geom_vline(aes(xintercept = 1),
+             linetype = "dashed", linewidth = 0.5) +
+  geom_vline(aes(xintercept = -2),
+             linetype = "dashed", linewidth = 0.5) +
+  scale_fill_brewer(palette = "YlGnBu") +
+  labs(
+     title = str_c("In ", 
+                   params$time_period, 
+                   ", ",
+                   percent_tooearly,
+                   "% of orders were delivered more than 5 weeks ahead of ADD"),
+ #   subtitle = (""),
+    caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
+                    importdate_pds,
+                    sep = " "),
+    x = "Difference between Actual delivery date and Agreed delivery date in weeks",
+    y = "Number of order line items "
+  ) +
+  mytheme()
+#+
+#  theme(axis.text.x = element_text(hjust = 1,
+#                                   angle = 60))
+```
+
+
 ```{r dataviz_perfds2_inweeks_drc}
-#| eval: false
-# repeat above chart for DRC
-# TODO % in title needs to change 
+#| title: DRC
+#| output: true
+
+#TODO add geom text to show less than 5 weeks
 pds |> 
-  filter(country_group == "Congo DRC") |> 
-  filter(revised_agreed_delivery_date_fiscal_quarter_year == params$time_period) |> 
+  filter(country_group == "Congo DRC",
+         revised_agreed_delivery_date_fiscal_quarter_year == params$time_period) |> 
   ggplot(aes(lt_ct/7, fill = otd_reasoncode)) + 
   
   geom_histogram(binwidth = 3, # OTD window is 3 weeks
@@ -551,7 +739,7 @@ pds |>
                    params$time_period, 
                    ", ",
                    percent_tooearly,
-                   "% of orders were delivered more than 5 weeks ahead of agreed delivery date"),
+                   "% of orders were delivered more than 5 weeks ahead of ADD"),
  #   subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
                     importdate_pds,
@@ -560,39 +748,9 @@ pds |>
     y = "Number of order line items "
   ) +
   mytheme()
-
-#Repeat chart for non DRC
-# TODO % in title needs to change 
-pds |> 
-  filter(country_group == "All other countries") |> 
-  filter(revised_agreed_delivery_date_fiscal_quarter_year == params$time_period) |> 
-  ggplot(aes(lt_ct/7, fill = otd_reasoncode)) + 
-  
-  geom_histogram(binwidth = 3, # OTD window is 3 weeks
-                 center = -0.5) + # center of one of the bins
-  scale_x_continuous(breaks = seq(-32 , 31 ,by = 3))+ # -32 and 31 are 10 bins on either side of the OTD window
-  # Add vertical lines for the OTD window
-  geom_vline(aes(xintercept = 1),
-             linetype = "dashed", linewidth = 0.5) +
-  geom_vline(aes(xintercept = -2),
-             linetype = "dashed", linewidth = 0.5) +
-  scale_fill_brewer(palette = "YlGnBu") +
-  labs(
-     title = str_c("In ", 
-                   params$time_period, 
-                   ", ",
-                   percent_tooearly,
-                   "% of orders were delivered more than 5 weeks ahead of agreed delivery date"),
- #   subtitle = (""),
-    caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
-                    importdate_pds,
-                    sep = " "),
-    x = "Difference between Actual delivery date and Agreed delivery date in weeks",
-    y = "Number of order line items "
-  ) +
-  mytheme()
-
-  
+#+
+#  theme(axis.text.x = element_text(hjust = 1,
+#                                   angle = 60))
 ```
 
 # Other reason codes
