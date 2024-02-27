@@ -49,7 +49,6 @@ pacman::p_load("tidyverse",
                "ggplot2",
                "RColorBrewer",
                "gt",
-            #   "plotly",
                "ggiraph"
             )
 
@@ -116,9 +115,7 @@ pds <- pds |>
   mutate(otd_reasoncode =
            case_when(on_time_otd == "N" 
                      ~ "Not on time",
-                  #   (reason_code == "AD012" & on_time_otd == "Y") 
-                  #   ~ "On time with AD012",
-                     (str_starts(reason_code,"AD") & on_time_otd == "Y")
+                    (str_starts(reason_code,"AD") & on_time_otd == "Y")
                      ~ "On time with reason code(s)",
                      (on_time_otd == "Y")
                      ~ "On time without reason code")
@@ -139,7 +136,6 @@ pds <- pds |>
     levels = c(
       "Not on time",
       "On time without reason code",
-  #    "On time with some other AD code",
       "On time with reason code(s)"
     )
   ))
@@ -309,29 +305,37 @@ mytheme <- function() {
 # other data viz setup
 
 # calculating percent with reason codes
-percent_reasoncode <- 
-round(
-  (pds |> 
-    filter(revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
-           otd_reasoncode %in% "On time with reason code(s)") |> 
+percent_reasoncode <- function(input_countrygroup){
+numerator <-
+  pds |> 
+    filter(
+      country_group %in% input_countrygroup,
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period,
+      otd_reasoncode %in% "On time with reason code(s)") |> 
     count() |> 
   pull()
-  )/
-  (pds |> 
-    filter(revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|> 
+  
+denominator <- 
+  pds |> 
+    filter(
+      country_group %in% input_countrygroup,
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|> 
     count() |> 
     pull()
-  ), 2)*100
-
+  
+round(numerator/denominator,2)*100
+}
 
 # calculating percent too early
 # note calculating 5weeks as it is OTD window + 1 bin to the left
 # TODO this needs to be with pds_all_codes to count instances where some other code is applied after AD012
 
-percent_tooearly <- 
-  count_A012_earlier_than_otd <- 
+percent_tooearly <-  function(input_countrygroup){
+  count_A012_earlier_than_5wk <- 
     pds |> 
-      filter(revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|>       
+      filter(
+      country_group %in% input_countrygroup,
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|>       
       filter(lt_ct/7 < -5 ,
              reason_code == "AD012",
              otd_reasoncode == "On time with reason code(s)") |> 
@@ -339,16 +343,14 @@ percent_tooearly <-
       pull(n)
   
   count__all <-  pds |>
-      filter(revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|>
+      filter(
+      country_group %in% input_countrygroup,
+      revised_agreed_delivery_date_fiscal_quarter_year %in% params$time_period)|>
       count() |> 
       pull(n)
   
-  percent_A012_earlier_than_otd <- round((count_A012_earlier_than_otd / count__all)*100,0)
-
-
-percent_reasoncode
-percent_tooearly
-
+  round((count_A012_earlier_than_5wk / count__all)*100,0)
+}
 
 ```
 
@@ -379,7 +381,7 @@ pds_grouped |>
     title = str_c("In ", 
                   params$time_period,
                   ", ", 
-                  percent_reasoncode,
+                  percent_reasoncode(c("All other countries","Congo DRC")),
                   "% of orders had a reason code applied"),
     subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -441,7 +443,7 @@ pds_grouped |>
     title = str_c("In ", 
                   params$time_period,
                   ", ", 
-                  percent_reasoncode,
+                  percent_reasoncode("All other countries"),
                   "% of orders had a reason code applied"),
     subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -503,7 +505,7 @@ pds_grouped |>
     title = str_c("In ", 
                   params$time_period,
                   ", ", 
-                  percent_reasoncode,
+                  percent_reasoncode("Congo DRC"),
                   "% of orders had a reason code applied"),
     subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -582,7 +584,8 @@ pds_allcodes |>
 ```
 
 ```{r dataviz_reasoncode_distribution_nonDRC}
-#| output: true
+#| eval: false
+#| #| output: true
 #| title: All countries except DRC
 
 pds_allcodes |> 
@@ -610,6 +613,7 @@ pds_allcodes |>
 ```
 
 ```{r dataviz_reasoncode_distribution_DRC}
+#| eval: false
 #| output: true
 #| title: DRC
 
@@ -661,7 +665,7 @@ pds |>
      title = str_c("In ", 
                    params$time_period, 
                    ", ",
-                   percent_tooearly,
+                   percent_tooearly(c("All other countries","Congo DRC")),
                    "% of orders were delivered more than 5 weeks ahead of ADD"),
  #   subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -671,12 +675,10 @@ pds |>
     y = "Number of order line items "
   ) +
   mytheme()
-#+
-#  theme(axis.text.x = element_text(hjust = 1,
-#                                   angle = 60))
 ```
 
 ```{r dataviz_perfds2_inweeks_allcountriesexceptdrc}
+#| eval: false
 #| title: All countries except DRC
 #| output: true
 
@@ -699,7 +701,7 @@ pds |>
      title = str_c("In ", 
                    params$time_period, 
                    ", ",
-                   percent_tooearly,
+                   percent_tooearly("All other countries"),
                    "% of orders were delivered more than 5 weeks ahead of ADD"),
  #   subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -709,13 +711,11 @@ pds |>
     y = "Number of order line items "
   ) +
   mytheme()
-#+
-#  theme(axis.text.x = element_text(hjust = 1,
-#                                   angle = 60))
 ```
 
 
 ```{r dataviz_perfds2_inweeks_drc}
+#| eval: false
 #| title: DRC
 #| output: true
 
@@ -738,7 +738,7 @@ pds |>
      title = str_c("In ", 
                    params$time_period, 
                    ", ",
-                   percent_tooearly,
+                   percent_tooearly("Congo DRC"),
                    "% of orders were delivered more than 5 weeks ahead of ADD"),
  #   subtitle = (""),
     caption = str_c("Data source: GHSC-PSM Artmis\nData last updated:",
@@ -748,9 +748,6 @@ pds |>
     y = "Number of order line items "
   ) +
   mytheme()
-#+
-#  theme(axis.text.x = element_text(hjust = 1,
-#                                   angle = 60))
 ```
 
 # Other reason codes
