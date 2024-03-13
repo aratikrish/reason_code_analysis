@@ -5,6 +5,7 @@ author: ""
 format: 
   dashboard:
     orientation: columns
+    embed-resources: true
 editor: visual
 params: 
   time_period: !expr c("2024-Q1")   
@@ -17,24 +18,6 @@ execute:
 ```{r purpose_version_learning}
 # Purpose: Analysis of the use of reason codes by GHSC-PSM TO3, particularly in FY2023 and FY2024Q1
 # Version: Feb 2024  Build off the oc.qmd script
-# old learning:
-#   use slice to remove rows
-#   use janitor row_to_names to get column names from a row
-#   use janitor remove_empty to remove rows that have all NAs
-#   use relocate
-#   use fill
-#   negating the condition for a filter
-#   use RcolorBrewer for ggplots
-#   setting the theme for a ggplot
-#   use forcats functions to set/change factor levels
-#   casting a variable as a factor in order to change order on a stacked bar plot
-#   using rep
-#   use across to perform operations across multiple columns
-#   use \(x) instead of ~.
-#   use if_all and a function/condition with filter
-#   change case_when default to .default =
-#   use count(is.na(variable)) to count number of nas
-
 ```
 
 ```{r initial_setup}
@@ -354,7 +337,7 @@ percent_tooearly <-  function(input_countrygroup){
 
 ```
 
-# Trend in the use of codes 
+# Trend in the use of codes
 
 ```{r dataviz_perfds1_allcountries}
 #| output: true
@@ -554,7 +537,7 @@ girafe(
 | **AD998** | Data cleaning           |
 | **AD999** | Other acceptable delay  |
 
-## column {.tabset}
+## column
 
 ```{r dataviz_reasoncode_distribution}
 #| output: true
@@ -641,7 +624,7 @@ pds_allcodes |>
   mytheme()
 ```
 
-# How early are early orders {.tabset}
+# How early are early orders
 
 ```{r dataviz_perfds2_inweeks_allcountries}
 #| title: All countries
@@ -712,7 +695,6 @@ pds |>
   ) +
   mytheme()
 ```
-
 
 ```{r dataviz_perfds2_inweeks_drc}
 #| eval: false
