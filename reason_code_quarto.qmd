@@ -1,5 +1,5 @@
 ---
-title: "GHSC-PSM TO3 Global Supply Chain"
+title: "GHSC-PSM `r params$taskorder` Global Supply Chain"
 subtitle: "Reason Code Analysis, February 2024"
 author: ""
 format: 
@@ -8,7 +8,8 @@ format:
     embed-resources: true
 editor: visual
 params: 
-  time_period: !expr c("2024-Q1")   
+  time_period: !expr c("2024-Q1") 
+  taskorder: "TO3"  
 execute: 
   echo: false # dont include code , override in sections as needed.
   output: false # dont include output, override in sections as needed.
@@ -36,7 +37,7 @@ pacman::p_load("tidyverse",
             )
 
 
-# For exploring character or factor columns, it is useful to have a see_distinct function -------------------------------------------------------------
+# Function for exploring character or factor columns -------------------------------------------------------------
 see_distinct <- function(df, var){
   df |> 
     distinct({{ var }}) |> 
@@ -69,7 +70,7 @@ pds <- pds_raw |>
 # Filter/select to chose only rows of interest
 pds <- pds |>
   filter(
-    condom_adjusted_task_order == "TO3",
+    condom_adjusted_task_order == params$taskorder,
     (status_name   == "Shipment Delivered" |
      status_name == "Partially Delivered"
     ),
@@ -198,7 +199,7 @@ reasoncode <- reasoncode |>
          ) |>
   filter(
     ro_number != "Replenishment Orders",
-    task_order == "TO3",
+    task_order == params$taskorder,
     str_starts(reason_code,"AD")
     ) |> 
   glimpse()
