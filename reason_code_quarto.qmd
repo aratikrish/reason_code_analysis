@@ -63,8 +63,7 @@ pds_raw |> glimpse()
 
 # clean names
 pds <- pds_raw |> 
-  janitor::clean_names() |> 
-  glimpse()
+  janitor::clean_names() 
 
 # This dataset is for all taskorders and all status. 
 # Filter/select to chose only rows of interest
@@ -162,8 +161,7 @@ reasoncode_raw |> glimpse()
 
 # clean names
 reasoncode <- reasoncode_raw |> 
-  janitor::clean_names() |> 
-  glimpse()
+  janitor::clean_names() 
 
 # rename current_indicator columns, there is one for PO and one for reason code
 reasoncode <- reasoncode |>
@@ -201,9 +199,7 @@ reasoncode <- reasoncode |>
     ro_number != "Replenishment Orders",
     task_order == params$taskorder,
     str_starts(reason_code,"AD")
-    ) |> 
-  glimpse()
-
+    ) 
 
 ```
 
